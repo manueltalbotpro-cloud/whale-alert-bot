@@ -130,14 +130,15 @@ async function checkH8BgJ(btc, now) {
       if (Math.abs(delta) < CFG.MIN_USDC_OUT) continue;
       const amtUSD = Math.abs(delta); // en USDC = USD
 
-      // Vérifier destination
-      const keys = tx.transaction?.message?.accountKeys || [];
-      const destKey = keys.find((k, i) => {
-        const pRec = post.find(x => x.accountIndex === i);
-        return pRec && parseFloat(pRec.uiTokenAmount.uiAmount || 0) > amtUSD * 0.9;
-      })?.pubkey || "";
+      // Vérifier destination via owner du compte cible (pas l'adresse token account)
+      const destOwner = post.find(p => {
+        if (p.mint !== CFG.USDC_MINT) return false;
+        const preBal = pre.find(x => x.accountIndex === p.accountIndex);
+        const d = parseFloat(p.uiTokenAmount?.uiAmount || 0) - parseFloat(preBal?.uiTokenAmount?.uiAmount || 0);
+        return d >= amtUSD * 0.8;
+      })?.owner || "";
 
-      const isToBinance = destKey === CFG.BINANCE_SOL_HOT;
+      const isToBinance = destOwner === CFG.BINANCE_SOL_HOT;
       const score = (amtUSD >= 100_000_000 ? 3 : 2) + (isToBinance ? 2 : 0) + (btc < CFG.BTC_STRONG_ZONE ? 3 : btc < CFG.BTC_LOW_ZONE ? 2 : 0);
       const emoji = score >= 7 ? "🚨" : score >= 5 ? "⚠️" : "📈";
       const label = score >= 7 ? "SIGNAL FORT — ACHAT" : score >= 5 ? "SIGNAL ACHAT" : "SIGNAL MODERE";
