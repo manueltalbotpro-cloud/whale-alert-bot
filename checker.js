@@ -280,9 +280,9 @@ async function main() {
   }
   console.log(`BTC Perp : $${btc.toLocaleString()}`);
 
-  // Message de statut toutes les heures (run #0, 12, 24... = toutes les 60 min)
+  // Message de statut toutes les heures OU si variable SEND_STATUS=true
   const runMinute = new Date().getMinutes();
-  const sendStatus = runMinute < 6; // envoyer entre :00 et :05 = 1x par heure
+  const sendStatus = runMinute < 6 || process.env.SEND_STATUS === "true";
   if (sendStatus) {
     const zone = btc < CFG.BTC_STRONG_ZONE
       ? "🔥 ZONE FORTE (<$85k)"
