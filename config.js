@@ -5,10 +5,10 @@
 module.exports = {
 
   // 1) Crée un bot via @BotFather sur Telegram → /newbot → copie le token ici
-  TELEGRAM_TOKEN: "8901457690:AAG-rgZHCdnHUhyA-ZrxjlVphIhZqQHGRy0",
+  TELEGRAM_TOKEN: process.env.TELEGRAM_TOKEN || "8901457690:AAG-rgZHCdnHUhyA-ZrxjlVphIhZqQHGRy0",
 
   // 2) Ton chat ID Telegram (envoie /start au bot, il te l'affichera)
-  TELEGRAM_CHAT_ID: "8479083477",
+  TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID || "8479083477",
 
   // ============================================================
   //  WALLETS SURVEILLÉS (ne pas modifier)
