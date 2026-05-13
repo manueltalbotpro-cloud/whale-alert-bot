@@ -126,18 +126,19 @@ async function checkH8BgJ(btc, now) {
       const postAmt = parseFloat(postRec?.uiTokenAmount?.uiAmount || 0);
       const delta   = postAmt - preAmt; // négatif = sortie USDC
 
-      if (delta >= -(CFG.MIN_USDC_OUT / 1e6)) continue;
-      const amtUSD = Math.abs(delta) * 1e6;
+      // uiAmount = USDC entier (1 uiAmount = 1 USDC = $1), delta négatif = sortie
+      if (Math.abs(delta) < CFG.MIN_USDC_OUT) continue;
+      const amtUSD = Math.abs(delta); // en USDC = USD
 
       // Vérifier destination
       const keys = tx.transaction?.message?.accountKeys || [];
       const destKey = keys.find((k, i) => {
         const pRec = post.find(x => x.accountIndex === i);
-        return pRec && parseFloat(pRec.uiTokenAmount.uiAmount || 0) > Math.abs(delta) * 0.9;
+        return pRec && parseFloat(pRec.uiTokenAmount.uiAmount || 0) > amtUSD * 0.9;
       })?.pubkey || "";
 
       const isToBinance = destKey === CFG.BINANCE_SOL_HOT;
-      const score = (amtUSD >= 100e6 ? 3 : 2) + (isToBinance ? 2 : 0) + (btc < CFG.BTC_STRONG_ZONE ? 3 : btc < CFG.BTC_LOW_ZONE ? 2 : 0);
+      const score = (amtUSD >= 100_000_000 ? 3 : 2) + (isToBinance ? 2 : 0) + (btc < CFG.BTC_STRONG_ZONE ? 3 : btc < CFG.BTC_LOW_ZONE ? 2 : 0);
       const emoji = score >= 7 ? "🚨" : score >= 5 ? "⚠️" : "📈";
       const label = score >= 7 ? "SIGNAL FORT — ACHAT" : score >= 5 ? "SIGNAL ACHAT" : "SIGNAL MODERE";
 
@@ -194,7 +195,7 @@ async function check9WzDX(btc, now) {
         `👀 *RECHARGEMENT WALLET 9WzDX*`,
         ``,
         `La baleine Solana #2 recoit :`,
-        `💵 *+$${delta.toFixed(0)}M USDC*`,
+        `💵 *+$${(delta / 1e6).toFixed(0)}M USDC*`,
         ``,
         `Ce wallet precede habituellement des depots sur Binance`,
         `₿ BTC : *$${btc.toLocaleString()}*`,
