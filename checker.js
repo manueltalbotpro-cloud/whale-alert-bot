@@ -61,9 +61,31 @@ async function sendTelegram(text) {
 }
 
 async function getBTC() {
-  const r = await fetch(CFG.BINANCE_API);
-  const d = await r.json();
-  return parseFloat(d.price);
+  // Essai 1 : Binance Futures
+  try {
+    const r = await fetch(CFG.BINANCE_API, { timeout: 8000 });
+    const d = await r.json();
+    const p = parseFloat(d.price);
+    if (!isNaN(p) && p > 0) return p;
+  } catch {}
+
+  // Essai 2 : Binance Spot
+  try {
+    const r = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=BTCUSDT", { timeout: 8000 });
+    const d = await r.json();
+    const p = parseFloat(d.price);
+    if (!isNaN(p) && p > 0) return p;
+  } catch {}
+
+  // Essai 3 : Kraken
+  try {
+    const r = await fetch("https://api.kraken.com/0/public/Ticker?pair=XBTUSD", { timeout: 8000 });
+    const d = await r.json();
+    const p = parseFloat(d.result?.XXBTZUSD?.c?.[0]);
+    if (!isNaN(p) && p > 0) return p;
+  } catch {}
+
+  return null;
 }
 
 // ─── Check Solana H8BgJ ──────────────────────────────────────
@@ -252,7 +274,35 @@ async function main() {
   console.log(`[${new Date().toISOString()}] Whale checker démarré`);
 
   const btc = await getBTC();
+  if (!btc) {
+    console.error("Impossible de récupérer le prix BTC");
+    process.exit(1);
+  }
   console.log(`BTC Perp : $${btc.toLocaleString()}`);
+
+  // Message de statut toutes les heures (run #0, 12, 24... = toutes les 60 min)
+  const runMinute = new Date().getMinutes();
+  const sendStatus = runMinute < 6; // envoyer entre :00 et :05 = 1x par heure
+  if (sendStatus) {
+    const zone = btc < CFG.BTC_STRONG_ZONE
+      ? "🔥 ZONE FORTE (<$85k)"
+      : btc < CFG.BTC_LOW_ZONE
+      ? "✅ Zone achat (<$95k)"
+      : "⚡ Hors zone optimale";
+
+    await sendTelegram([
+      `📡 *Whale Bot — Rapport horaire*`,
+      ``,
+      `₿ *BTC Perp : $${btc.toLocaleString()}*`,
+      zone,
+      ``,
+      `🐋 H8BgJ : 687.9M USDC non deploye`,
+      `🐋 9WzDX : surveille rechargement`,
+      `🏦 Binance HW20 : $41.92B actif`,
+      ``,
+      `✅ Surveillance active — aucun signal en ce moment`,
+    ].join("\n"));
+  }
 
   await checkBTCZones(btc);
   await sleep(1000);
@@ -262,6 +312,7 @@ async function main() {
   await sleep(1000);
   await checkEthHW20(btc);
 
+  console.log(`BTC_PRICE=${btc}`);
   console.log("[Done] Vérification terminée");
 }
 
