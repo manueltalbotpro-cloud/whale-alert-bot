@@ -26,4 +26,5 @@ jobs:
           TELEGRAM_TOKEN:   ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           LAST_BTC_PRICE:   ${{ vars.LAST_BTC_PRICE }}
+          SEND_STATUS:      ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
         run: node checker.js
