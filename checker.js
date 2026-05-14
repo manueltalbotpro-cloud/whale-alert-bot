@@ -284,7 +284,7 @@ async function checkExternalBinanceDeposits(btc) {
     const val = BigInt("0x" + log.data.replace("0x", "").padStart(64, "0"));
     const amtUSD = Number(val) / 1e6;
 
-    if (amtUSD < 50_000_000) continue; // <$50M ignoré
+    if (amtUSD < 200_000_000) continue; // <$200M ignoré
 
     const isKnownWhale = fromRaw === CFG.WHALE_ETH_0x2213.toLowerCase();
     const isLowBTC = btc < CFG.BTC_LOW_ZONE;
@@ -355,9 +355,10 @@ async function checkTetherMint(btc) {
     destinations.add(toRaw);
   }
 
-  if (totalMint < 200_000_000) return; // <$200M ignoré
-
   const isToBinance = [...destinations].some(d => CFG.BINANCE_ETH_ADDRS.includes(d));
+
+  if (!isToBinance) return; // ignoré si pas directement vers Binance
+  if (totalMint < 500_000_000) return; // <$500M ignoré
   const isLowBTC = btc < CFG.BTC_LOW_ZONE;
   const score = (totalMint >= 1e9 ? 3 : totalMint >= 500e6 ? 2 : 1) + (isToBinance ? 2 : 0) + (isLowBTC ? 2 : 0);
 
