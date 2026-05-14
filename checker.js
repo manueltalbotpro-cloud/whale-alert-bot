@@ -25,9 +25,11 @@ const CFG = {
     "0xd551234ae421e3bcba99a0da6d736074f22192ff",
     "0x0000000000000000000000000000000000000000",
   ],
-  // Wallets
+  // Wallets Solana
   H8BG_USDC_ACCOUNT: "DT78gNBH7enTRrAFcag4PAuQbSeemstmtj888w8pkvdf",
   WZWDX_WALLET:      "9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM",
+  // Wallets ETH institutionnels connus
+  WHALE_ETH_0x2213:  "0x22132139bf7f3921b1cadeab931f4fbf7bf2bc9e", // DCA auto $200M/33min → Binance14
   // Seuils
   MIN_USDC_OUT:      50_000_000,   // $50M
   MIN_ETH_RESHUFFLE: 300_000_000,  // $300M
@@ -148,7 +150,7 @@ async function checkH8BgJ(btc, now) {
         ``,
         `*Baleine Solana H8BgJ* transfert :`,
         `💵 *$${(amtUSD / 1e6).toFixed(0)}M USDC* sorti`,
-        isToBinance ? `📥 Destination : *BINANCE* (Solana Hot Wallet)` : `📥 Destination : \`${destKey.substring(0, 20)}...\``,
+        isToBinance ? `📥 Destination : *BINANCE* (Solana Hot Wallet)` : `📥 Destination : \`${destOwner.substring(0, 20)}...\``,
         ``,
         `₿ *BTC Perp : $${btc.toLocaleString()}*`,
         btc < CFG.BTC_STRONG_ZONE ? `🔥 Zone forte (<$85k) — historique +5% a +16% sur 4 semaines` : btc < CFG.BTC_LOW_ZONE ? `✅ Zone achat (<$95k)` : `⚡ Hors zone optimale`,
@@ -157,7 +159,7 @@ async function checkH8BgJ(btc, now) {
         `Tx : \`${s.signature.substring(0, 20)}...\``,
       ].join("\n"));
 
-      console.log(`[H8BgJ] Signal ${score}/8 — $${(amtUSD/1e6).toFixed(0)}M USDC → ${isToBinance ? "BINANCE" : destKey.substring(0,16)}`);
+      console.log(`[H8BgJ] Signal ${score}/8 — $${(amtUSD/1e6).toFixed(0)}M USDC → ${isToBinance ? "BINANCE" : destOwner.substring(0,16)}`);
     }
   }
 }
@@ -284,19 +286,26 @@ async function checkExternalBinanceDeposits(btc) {
 
     if (amtUSD < 50_000_000) continue; // <$50M ignoré
 
+    const isKnownWhale = fromRaw === CFG.WHALE_ETH_0x2213.toLowerCase();
     const isLowBTC = btc < CFG.BTC_LOW_ZONE;
     const isStrongBTC = btc < CFG.BTC_STRONG_ZONE;
-    const score = (amtUSD >= 200e6 ? 3 : amtUSD >= 100e6 ? 2 : 1) + (isStrongBTC ? 3 : isLowBTC ? 2 : 0);
-    const emoji = score >= 5 ? "🚨" : score >= 3 ? "⚠️" : "📊";
-    const label = score >= 5 ? "DEPOT INSTITUTIONNEL — BTC BAS" : score >= 3 ? "DEPOT INSTITUTIONNEL" : "Mouvement ETH Binance";
+    const score = (amtUSD >= 200e6 ? 3 : amtUSD >= 100e6 ? 2 : 1) + (isStrongBTC ? 3 : isLowBTC ? 2 : 0) + (isKnownWhale ? 1 : 0);
+    const emoji = score >= 6 ? "🚨" : score >= 4 ? "⚠️" : "📊";
+    const label = isKnownWhale
+      ? (score >= 5 ? "WHALE 0x2213 — DCA ACTIF — BTC BAS" : "WHALE 0x2213 — DEPOT DCA")
+      : (score >= 5 ? "DEPOT INSTITUTIONNEL — BTC BAS" : score >= 3 ? "DEPOT INSTITUTIONNEL" : "Mouvement ETH Binance");
 
-    const fromShort = "0x" + fromRaw.substring(2, 10) + "...";
+    const fromDisplay = isKnownWhale
+      ? `\`${fromRaw}\` _(Whale DCA auto)_`
+      : `\`${fromRaw}\``;
     await sendTelegram([
       `${emoji} *${label}*`,
       ``,
-      `Entite inconnue depose sur Binance ETH :`,
+      isKnownWhale
+        ? `Whale institutionnelle depose sur Binance 14 :`
+        : `Entite inconnue depose sur Binance ETH :`,
       `💵 *$${(amtUSD / 1e6).toFixed(0)}M USDT* recu par Binance 14`,
-      `📤 Source : \`${fromShort}\``,
+      `📤 Source : ${fromDisplay}`,
       ``,
       isLowBTC
         ? `🔥 BTC en zone achat — depot institutionnel = signal fort`
@@ -304,7 +313,7 @@ async function checkExternalBinanceDeposits(btc) {
       `Score signal : ${score}/6`,
     ].join("\n"));
 
-    console.log(`[EXT DEP] $${(amtUSD/1e6).toFixed(0)}M USDT → Binance14 depuis ${fromShort} | score ${score}/6`);
+    console.log(`[EXT DEP] $${(amtUSD/1e6).toFixed(0)}M USDT → Binance14 depuis ${fromRaw}${isKnownWhale ? " [Whale DCA]" : ""} | score ${score}/7`);
   }
 }
 
@@ -436,9 +445,10 @@ async function main() {
       `🐋 Solana 9WzDX : surveille rechargement`,
       `🏦 Binance HW20 (ETH) : reshuffles internes`,
       `🏦 Binance 14 (ETH) : depots externes >$50M`,
+      `🐳 Whale ETH 0x2213 : DCA $200M/33min → Binance14`,
       `🖨️ Tether Mint : nouveaux USDT→Binance`,
       ``,
-      `✅ Surveillance active — 5 signaux monitores`,
+      `✅ Surveillance active — 6 signaux monitores`,
     ].join("\n"));
   }
 
