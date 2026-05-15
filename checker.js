@@ -428,7 +428,7 @@ async function main() {
   const now_ = new Date();
   const utcH = now_.getUTCHours();
   const utcM = now_.getUTCMinutes();
-  const sendStatus = (utcH === 10 && utcM < 6) || process.env.SEND_STATUS === "true";
+  const sendStatus = ((utcH === 10 || utcH === 22) && utcM < 6) || process.env.SEND_STATUS === "true";
   if (sendStatus) {
     const zone = btc < CFG.BTC_STRONG_ZONE
       ? "🔥 ZONE FORTE (<$85k)"
