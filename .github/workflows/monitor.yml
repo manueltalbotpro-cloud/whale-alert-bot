@@ -2,7 +2,8 @@ name: Whale Monitor
 
 on:
   schedule:
-    - cron: '*/5 * * * *'   # toutes les 5 minutes, 24h/24
+    - cron: '*/5 * * * *'   # surveillance whale toutes les 5 min (throttlé par GitHub ~6x/jour)
+    - cron: '0 10 * * *'    # rapport quotidien garanti à 10h UTC (= 12h heure française)
   workflow_dispatch:          # déclenchement manuel possible
 
 jobs:
@@ -26,5 +27,5 @@ jobs:
           TELEGRAM_TOKEN:   ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           LAST_BTC_PRICE:   ${{ vars.LAST_BTC_PRICE }}
-          SEND_STATUS:      ${{ github.event_name == 'workflow_dispatch' && 'true' || 'false' }}
+          SEND_STATUS:      ${{ (github.event_name == 'workflow_dispatch' || github.event.schedule == '0 10 * * *') && 'true' || 'false' }}
         run: node checker.js
